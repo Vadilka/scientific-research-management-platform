@@ -115,6 +115,8 @@ Start całego środowiska:
 docker compose up -d --build
 ```
 
+Porty hosta są przypięte do `127.0.0.1` i można je zmienić w `.env` przez zmienne z sufiksem `_HOST_PORT`. Jest to używane wtedy, gdy lokalne porty takie jak `5432`, `3000` albo `9090` są już zajęte.
+
 ## 10. Monitoring
 
 Monitoring działa na dwóch poziomach:
@@ -131,6 +133,7 @@ Testy integracyjne backendu sprawdzają kluczowe reguły biznesowe:
 - poprawny start kontekstu Spring,
 - edycję szkicu i wyszukiwanie zgłoszeń,
 - administrację rolami, workflow recenzji, powiadomienia oraz eksporty raportów.
+- logowanie JWT, endpoint bieżącego użytkownika, ochronę Bearer tokenem oraz blokadę dostępu autora do panelu administracyjnego.
 
 Frontend jest weryfikowany przez:
 
@@ -139,6 +142,8 @@ Frontend jest weryfikowany przez:
 - `npm run screenshots`
 
 Komenda screenshot generuje obrazy dokumentacyjne z działającej aplikacji. Dzięki temu dokumentacja wizualna jest powiązana z aktualnym stanem systemu.
+
+GitHub Actions uruchamia testy Maven backendu oraz lint/build frontendu przy pushach i pull requestach do `main`.
 
 ## 12. Zrzuty ekranu
 

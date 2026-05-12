@@ -131,6 +131,8 @@ npm run lint
 npm run build
 ```
 
+GitHub Actions also runs these checks on every push and pull request to `main`: backend Maven tests, frontend lint and frontend production build.
+
 Screenshot generation is available as a separate documentation task:
 
 ```powershell

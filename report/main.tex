@@ -308,11 +308,13 @@ Najważniejsze encje systemu to użytkownik, zgłoszenie artykułu, autor artyku
 
 Środowisko jest uruchamiane przez \texttt{docker-compose.yml}. Kompozycja zawiera pięć usług: \texttt{postgres}, \texttt{backend}, \texttt{frontend}, \texttt{prometheus} i \texttt{grafana}. Dodatkowo zdefiniowano wolumeny dla danych PostgreSQL, przesłanych plików, danych Prometheus i danych Grafana.
 
+Porty hosta są wystawiane wyłącznie na \texttt{127.0.0.1}. Domyślna konfiguracja używa portów \texttt{5432}, \texttt{8080}, \texttt{4173}, \texttt{9090} i \texttt{3000}, ale można je zmienić w pliku \texttt{.env} przez zmienne z sufiksem \texttt{\_HOST\_PORT}. Dzięki temu aplikację można uruchomić także wtedy, gdy jeden z domyślnych portów jest już zajęty na komputerze użytkownika.
+
 \begin{verbatim}
 docker compose up -d --build
 \end{verbatim}
 
-Po uruchomieniu dostępne są adresy:
+Po uruchomieniu z domyślną konfiguracją dostępne są adresy:
 
 \begin{itemize}
     \item frontend: \texttt{http://localhost:4173},
@@ -358,9 +360,13 @@ Element & Co jest sprawdzane \\
 \hline
 \texttt{WorkflowAndAdministrationIntegrationTest} & Role, przypisania recenzentów, recenzje, decyzje, powiadomienia i raporty. \\
 \hline
+\texttt{AuthSecurityIntegrationTest} & Logowanie JWT, profil bieżącego użytkownika, ochrona endpointów tokenem Bearer i blokada panelu administracyjnego dla roli autora. \\
+\hline
 \texttt{npm run lint} & Poprawność statyczna kodu frontendu. \\
 \hline
 \texttt{npm run build} & Produkcyjna kompilacja React i TypeScript. \\
+\hline
+\texttt{GitHub Actions CI} & Automatyczne uruchomienie testów backendu oraz lint/build frontendu przy pushach i pull requestach do gałęzi \texttt{main}. \\
 \hline
 \texttt{npm run screenshots} & Aktualność dokumentacji wizualnej względem działającego systemu. \\
 \hline

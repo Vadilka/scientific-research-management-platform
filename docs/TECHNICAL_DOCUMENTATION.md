@@ -20,6 +20,7 @@ The system is a full-stack web application for scientific article submissions. I
 - Docker Compose deployment.
 - Actuator, Prometheus and Grafana monitoring.
 - Backend integration tests, frontend lint/build and generated screenshots.
+- GitHub Actions CI for backend tests and frontend lint/build on `main`.
 
 The main architectural decision is that the backend owns business rules. The frontend shows or hides actions depending on the user role, but status transitions, reviewer assignment rules and administrator role changes are validated by backend services.
 
@@ -38,6 +39,7 @@ System jest pełną aplikacją webową do obsługi zgłoszeń artykułów naukow
 - wdrożenie Docker Compose,
 - monitoring Actuator, Prometheus i Grafana,
 - testy integracyjne backendu, lint/build frontendu oraz generowane screenshoty.
+- GitHub Actions CI dla testów backendu oraz lint/build frontendu na gałęzi `main`.
 
 Najważniejsza decyzja architektoniczna polega na tym, że backend jest właścicielem reguł biznesowych. Frontend pokazuje albo ukrywa akcje zależnie od roli, ale przejścia statusów, przypisania recenzentów i zmiany ról administratora są walidowane przez serwisy backendowe.
 

@@ -115,6 +115,8 @@ The full stack can be started with:
 docker compose up -d --build
 ```
 
+Host ports are bound to `127.0.0.1` and can be changed through `.env` variables with the `_HOST_PORT` suffix. This is used when local ports such as `5432`, `3000` or `9090` are already occupied.
+
 ## 10. Monitoring
 
 Monitoring has two levels:
@@ -131,6 +133,7 @@ Backend integration tests verify the most important business rules:
 - Spring application context starts correctly.
 - Draft editing and submission search work.
 - Role administration, review workflow, notifications and report exports work together.
+- JWT login, current-user lookup, Bearer-token protection and author access restrictions are covered by security tests.
 
 Frontend verification includes:
 
@@ -139,6 +142,8 @@ Frontend verification includes:
 - `npm run screenshots`
 
 The screenshot command generates documentation images from the running application. This is useful because it proves that the documented UI still matches the current product.
+
+GitHub Actions runs the backend Maven tests and frontend lint/build jobs on pushes and pull requests to `main`.
 
 ## 12. Screenshots
 
