@@ -80,9 +80,15 @@ Full gallery: [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md)
 
 ## Quick Start
 
+Prerequisites:
+
+- Docker Desktop, Docker Engine or another Docker Compose-compatible runtime.
+- Node.js 22+ for local frontend development.
+- Java 21+ for local backend development.
+
 Clone the repository:
 
-```powershell
+```bash
 git clone https://github.com/Vadilka/scientific-research-management-platform.git
 cd scientific-research-management-platform
 ```
@@ -90,12 +96,18 @@ cd scientific-research-management-platform
 Create a local environment file:
 
 ```powershell
+# Windows PowerShell
 Copy-Item .env.example .env
+```
+
+```bash
+# macOS / Linux
+cp .env.example .env
 ```
 
 The `.env` file is ignored by Git. Keep real database and Grafana passwords there. The committed `.env.example` contains only local/demo values.
 
-```powershell
+```bash
 docker compose up -d --build
 ```
 
@@ -123,6 +135,7 @@ Database, JWT and Grafana credentials are configured through `.env`. Demo applic
 ## Verification
 
 ```powershell
+# Windows PowerShell
 cd backend
 .\mvnw.cmd test
 
@@ -131,11 +144,21 @@ npm run lint
 npm run build
 ```
 
+```bash
+# macOS / Linux
+cd backend
+./mvnw test
+
+cd ../frontend
+npm run lint
+npm run build
+```
+
 GitHub Actions also runs these checks on every push and pull request to `main`: backend Maven tests, frontend lint and frontend production build.
 
 Screenshot generation is available as a separate documentation task:
 
-```powershell
+```bash
 cd frontend
 npm run screenshots
 ```

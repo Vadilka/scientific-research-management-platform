@@ -111,11 +111,13 @@ Main persisted entities include users, article submissions, authors, categories,
 
 The full stack can be started with:
 
-```powershell
+```bash
 docker compose up -d --build
 ```
 
 Host ports are bound to `127.0.0.1` and can be changed through `.env` variables with the `_HOST_PORT` suffix. This is used when local ports such as `5432`, `3000` or `9090` are already occupied.
+
+Before the first run, create `.env` from `.env.example`. On Windows PowerShell use `Copy-Item .env.example .env`; on macOS and Linux use `cp .env.example .env`.
 
 ## 10. Monitoring
 
@@ -140,6 +142,8 @@ Frontend verification includes:
 - `npm run lint`
 - `npm run build`
 - `npm run screenshots`
+
+Backend tests use `.\mvnw.cmd test` on Windows and `./mvnw test` on macOS/Linux.
 
 The screenshot command generates documentation images from the running application. This is useful because it proves that the documented UI still matches the current product.
 

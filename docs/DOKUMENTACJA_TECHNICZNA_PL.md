@@ -111,11 +111,13 @@ Główne encje to użytkownicy, zgłoszenia artykułów, autorzy, kategorie, pli
 
 Start całego środowiska:
 
-```powershell
+```bash
 docker compose up -d --build
 ```
 
 Porty hosta są przypięte do `127.0.0.1` i można je zmienić w `.env` przez zmienne z sufiksem `_HOST_PORT`. Jest to używane wtedy, gdy lokalne porty takie jak `5432`, `3000` albo `9090` są już zajęte.
+
+Przed pierwszym uruchomieniem należy utworzyć `.env` na podstawie `.env.example`. W Windows PowerShell służy do tego `Copy-Item .env.example .env`, a w macOS i Linux `cp .env.example .env`.
 
 ## 10. Monitoring
 
@@ -140,6 +142,8 @@ Frontend jest weryfikowany przez:
 - `npm run lint`
 - `npm run build`
 - `npm run screenshots`
+
+Testy backendu uruchamia się przez `.\mvnw.cmd test` w Windows oraz `./mvnw test` w macOS/Linux.
 
 Komenda screenshot generuje obrazy dokumentacyjne z działającej aplikacji. Dzięki temu dokumentacja wizualna jest powiązana z aktualnym stanem systemu.
 

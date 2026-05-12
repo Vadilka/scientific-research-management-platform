@@ -310,6 +310,20 @@ Najważniejsze encje systemu to użytkownik, zgłoszenie artykułu, autor artyku
 
 Porty hosta są wystawiane wyłącznie na \texttt{127.0.0.1}. Domyślna konfiguracja używa portów \texttt{5432}, \texttt{8080}, \texttt{4173}, \texttt{9090} i \texttt{3000}, ale można je zmienić w pliku \texttt{.env} przez zmienne z sufiksem \texttt{\_HOST\_PORT}. Dzięki temu aplikację można uruchomić także wtedy, gdy jeden z domyślnych portów jest już zajęty na komputerze użytkownika.
 
+Przed pierwszym uruchomieniem należy skopiować plik środowiskowy. W Windows PowerShell używana jest komenda:
+
+\begin{verbatim}
+Copy-Item .env.example .env
+\end{verbatim}
+
+W macOS i Linux odpowiednikiem jest:
+
+\begin{verbatim}
+cp .env.example .env
+\end{verbatim}
+
+Następnie cały stos uruchamia się tą samą komendą na Windows, macOS i Linux:
+
 \begin{verbatim}
 docker compose up -d --build
 \end{verbatim}
@@ -375,11 +389,25 @@ Element & Co jest sprawdzane \\
 
 Podczas końcowej weryfikacji uruchomiono:
 
+\textbf{Windows PowerShell:}
+
 \begin{verbatim}
 cd backend
 .\mvnw.cmd test
 
 cd ..\frontend
+npm run lint
+npm run build
+npm run screenshots
+\end{verbatim}
+
+\textbf{macOS/Linux:}
+
+\begin{verbatim}
+cd backend
+./mvnw test
+
+cd ../frontend
 npm run lint
 npm run build
 npm run screenshots
