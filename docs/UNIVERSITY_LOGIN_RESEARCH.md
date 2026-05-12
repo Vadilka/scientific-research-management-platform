@@ -2,7 +2,7 @@
 
 ## EN Purpose
 
-The project currently supports local account registration and HTTP Basic authentication for development and demonstration. A production university deployment should integrate with the institution's central identity provider.
+The project currently supports local account registration and JWT Bearer authentication for development and demonstration. A production university deployment should integrate with the institution's central identity provider.
 
 ## Recommended Direction
 
@@ -56,7 +56,7 @@ Best fit:
 
 ## PL Cel
 
-Projekt obsługuje obecnie lokalne konta i HTTP Basic authentication na potrzeby developmentu oraz demonstracji. W wersji produkcyjnej dla uczelni aplikacja powinna zostać zintegrowana z centralnym dostawcą tożsamości.
+Projekt obsługuje obecnie lokalne konta oraz uwierzytelnianie JWT Bearer na potrzeby developmentu i demonstracji. W wersji produkcyjnej dla uczelni aplikacja powinna zostać zintegrowana z centralnym dostawcą tożsamości.
 
 ## Rekomendacja
 

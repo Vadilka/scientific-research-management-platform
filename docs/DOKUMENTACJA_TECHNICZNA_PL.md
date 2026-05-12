@@ -54,7 +54,7 @@ Nowy użytkownik zawsze otrzymuje rolę `AUTHOR`. Role podwyższone są nadawane
 - `config`: konfiguracja bezpieczeństwa i inicjalizacja danych.
 - `common`: wspólne wyjątki i pomocnicze elementy warstwy web.
 
-Backend wykorzystuje Spring Security z HTTP Basic. Frontend przechowuje dane logowania w local storage na potrzeby sesji demonstracyjnej, ale właściwa autoryzacja jest egzekwowana po stronie backendu.
+Backend wykorzystuje Spring Security oraz bezstanowe uwierzytelnianie JWT Bearer. Logowanie i rejestracja zwracają podpisany token, a frontend przechowuje wyłącznie ten token dla bieżącej sesji przeglądarki. Hasła nie są przechowywane w stanie frontendu ani w local storage. Właściwa autoryzacja nadal jest egzekwowana przez kontrolery i serwisy backendu, więc ukrywanie akcji w interfejsie jest tylko warstwą wygody, a nie granicą bezpieczeństwa.
 
 ## 6. Workflow zgłoszenia
 

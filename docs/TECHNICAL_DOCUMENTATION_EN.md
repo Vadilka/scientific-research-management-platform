@@ -54,7 +54,7 @@ New users are always registered as `AUTHOR`. Higher roles are assigned manually 
 - `config`: security, data initialization and application configuration.
 - `common`: shared exceptions and web helpers.
 
-The backend uses Spring Security with HTTP Basic authentication. The frontend stores credentials in local storage for the current demo session, but authorization is enforced by backend controllers/services.
+The backend uses Spring Security with stateless JWT Bearer authentication. Login and registration return a signed token, and the frontend stores only that token for the current browser session. Passwords are never stored in the frontend state or local storage. Authorization is still enforced by backend controllers and services, so hiding UI actions is only a convenience layer, not the security boundary.
 
 ## 6. Submission Workflow
 
