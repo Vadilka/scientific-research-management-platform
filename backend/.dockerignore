@@ -1,0 +1,6 @@
+target/
+.git/
+.env
+*.log
+HELP.md
+.mvn/wrapper/maven-wrapper.jar.lastUpdated
