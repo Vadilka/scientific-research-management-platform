@@ -1,0 +1,41 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+github-gpg-public-key.asc
+
+# Java / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# Test and build artifacts
+coverage/
+reports/
+*.tmp
+
+# Runtime storage
+uploads/
+storage/
+data/
+postgres-data/
+grafana-data/
+prometheus-data/
+
+# Local backup folders
+*_backup/
+frontend_vanilla_backup/
