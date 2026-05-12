@@ -1,6 +1,3 @@
--- Development/demo password normalization.
--- This keeps all seeded local accounts on the documented password: password.
-
 update users
 set password_hash = '{noop}password',
     updated_at = now()

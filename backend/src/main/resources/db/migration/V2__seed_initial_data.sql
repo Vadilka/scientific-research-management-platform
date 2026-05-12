@@ -1,6 +1,3 @@
--- Development/demo seed data used by the university project and local Docker profile.
--- Production deployments should replace these accounts with real user onboarding.
-
 insert into scientific_categories (code, name, description, created_at, updated_at)
 values
     ('CS', 'Computer Science', 'Articles focused on software engineering, systems, and computation.', now(), now()),
