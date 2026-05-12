@@ -107,6 +107,8 @@ Application URLs:
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3000`
 
+If a local port is already reserved, change the corresponding `*_HOST_PORT` value in `.env` before starting Docker Compose.
+
 Demo accounts:
 
 - `admin@san.local / password`
