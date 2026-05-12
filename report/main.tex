@@ -1,0 +1,402 @@
+\documentclass[times]{san}
+
+\usepackage{float}
+\usepackage[section]{placeins}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.75}
+
+\bibliografia{bibliografia.bib}
+
+\uczelnia{Społeczna Akademia Nauk}
+\przedmiot{Systemy Szkieletowe}
+\autor{Vladyslav Kosolap}
+\nralbumu{121266}
+\grupa{1, studia stacjonarne}
+\tytul{System zgłaszania artykułów naukowych}
+\prowadzacy{mgr inż. Krystian Gumiński}
+\miasto{Łódź}
+\rok{2026}
+
+\newcommand{\screenshotfigure}[3]{
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth,height=0.43\textheight,keepaspectratio]{#1}
+\caption{#2}
+\label{#3}
+\end{figure}
+}
+
+\newcommand{\twoscreenshotfigure}[6]{
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.30\textheight,keepaspectratio]{#1}
+\vspace{2mm}
+{\footnotesize #2}
+\end{minipage}
+\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.30\textheight,keepaspectratio]{#3}
+\vspace{2mm}
+{\footnotesize #4}
+\end{minipage}
+\caption{#5}
+\label{#6}
+\end{figure}
+}
+
+\begin{document}
+
+\maketitlepage
+\spistresci
+
+\section{Wstęp}
+
+Proces zgłaszania artykułów naukowych jest ważnym elementem pracy uczelni, kół naukowych, konferencji i redakcji czasopism. Autorzy przygotowują metadane publikacji, przesyłają pliki, oczekują na recenzję, a redaktorzy koordynują decyzje oraz komunikację z uczestnikami procesu. W małych organizacjach taki przepływ często odbywa się przez pocztę e-mail, arkusze kalkulacyjne i foldery współdzielone. Na początku jest to wystarczające, ale wraz ze wzrostem liczby zgłoszeń pojawiają się problemy: niejednoznaczne statusy, brak historii decyzji, trudność w przypisaniu odpowiedzialności oraz brak centralnego miejsca dla plików i komentarzy.
+
+Tematem projektu jest aplikacja webowa \textit{System zgłaszania artykułów naukowych}. System wspiera role autora, recenzenta, redaktora i administratora. Aplikacja została przygotowana jako kompletny projekt JEE obejmujący frontend, backend, bazę danych, Docker, testy, monitoring oraz dokumentację. Zakres projektu został dobrany tak, aby pokazać pełny przepływ biznesowy, ale jednocześnie zachować czytelność implementacji.
+
+Istotnym założeniem było stworzenie aplikacji, którą można nie tylko pokazać jako interfejs, ale także uruchomić jako całość. Dlatego projekt zawiera środowisko Docker Compose, migracje bazy danych, konta demonstracyjne, dashboard Grafana, endpointy Actuator oraz skrypt generujący aktualne zrzuty ekranu z działającej aplikacji.
+
+\section{Cel i zakres projektu}
+
+Celem projektu jest zaprojektowanie i zaimplementowanie systemu, który centralizuje obsługę zgłoszeń artykułów naukowych. Użytkownik nie powinien śledzić procesu w kilku oddzielnych narzędziach. Autor widzi własne zgłoszenia i powiadomienia, recenzent obsługuje przypisane recenzje, redaktor podejmuje decyzje, a administrator zarządza rolami.
+
+Cele funkcjonalne obejmują:
+
+\begin{itemize}
+    \item rejestrację i logowanie użytkowników,
+    \item ręczne zarządzanie rolami przez administratora,
+    \item tworzenie i edycję szkiców artykułów,
+    \item przesyłanie plików PDF, DOCX oraz źródeł LaTeX,
+    \item filtrowanie i wyszukiwanie zgłoszeń,
+    \item przypisywanie recenzentów do artykułów,
+    \item składanie recenzji z oceną, rekomendacją i komentarzami,
+    \item podejmowanie decyzji redakcyjnych,
+    \item publikację zaakceptowanych artykułów,
+    \item powiadomienia wewnętrzne,
+    \item raporty operacyjne i eksport do CSV oraz PDF.
+\end{itemize}
+
+Cele niefunkcjonalne obejmują konteneryzację, czytelną strukturę repozytorium, testy integracyjne, monitoring stanu aplikacji, dokumentację techniczną po polsku i angielsku oraz możliwość wykorzystania repozytorium jako projektu portfolio.
+
+\section{Przegląd istniejących rozwiązań}
+
+\subsection{Open Journal Systems}
+
+Open Journal Systems jest otwartym systemem zarządzania czasopismem naukowym i procesem publikacji. OJS wspiera zgłoszenia, role redakcyjne, recenzję, korektę i publikację \cite{ojs_workflow}. Dla niniejszego projektu OJS był punktem odniesienia przede wszystkim w zakresie podziału odpowiedzialności między autora, recenzenta i redaktora.
+
+\subsection{Editorial Manager}
+
+Editorial Manager jest komercyjnym systemem workflow dla zgłoszeń manuskryptów i peer review \cite{aries_editorial_manager}. W porównaniu z projektem studenckim jest rozwiązaniem znacznie większym, ale potwierdza potrzebę kontroli statusów, przypisań recenzentów i centralizacji decyzji redakcyjnych.
+
+\subsection{ScholarOne Manuscripts}
+
+ScholarOne Manuscripts jest systemem do elektronicznego zgłaszania manuskryptów i obsługi recenzji. Instrukcje czasopism korzystających z tego rozwiązania pokazują typowy model: autor przesyła artykuł przez system webowy, recenzenci oceniają pracę elektronicznie, a redakcja podejmuje decyzję \cite{cdc_scholarone}. W projekcie zaimplementowano podobny przepływ w uproszczonej, ale działającej formie.
+
+\section{Wymagania i role użytkowników}
+
+Projekt opiera się na czterech rolach. Każda z nich ma inny zakres odpowiedzialności, a widoczność funkcji w interfejsie zależy od roli zalogowanego użytkownika.
+
+\begin{table}[!htbp]
+\centering
+\caption{Role w systemie}
+\label{tab:roles}
+\begin{tabular}{|p{0.18\textwidth}|p{0.72\textwidth}|}
+\hline
+Rola & Zakres odpowiedzialności \\
+\hline
+\texttt{AUTHOR} & Tworzenie szkiców, zgłaszanie artykułów, upload plików, obserwowanie statusu oraz odbiór powiadomień. \\
+\hline
+\texttt{REVIEWER} & Obsługa przypisanych recenzji, wystawienie oceny, rekomendacji i komentarzy. \\
+\hline
+\texttt{EDITOR} & Przypisywanie recenzentów, obsługa kolejki redakcyjnej, decyzje o akceptacji, odrzuceniu i publikacji. \\
+\hline
+\texttt{ADMIN} & Ręczne zarządzanie rolami oraz dostęp do modułów administracyjnych i operacyjnych. \\
+\hline
+\end{tabular}
+\end{table}
+
+Ważną zmianą projektową było usunięcie możliwości wyboru roli przez użytkownika podczas logowania. Nowo zarejestrowany użytkownik zawsze otrzymuje rolę \texttt{AUTHOR}. Role \texttt{REVIEWER}, \texttt{EDITOR} i \texttt{ADMIN} są nadawane ręcznie w panelu administratora. Dzięki temu model uprawnień jest bliższy rzeczywistym systemom uczelnianym i nie opiera się na zaufaniu do klienta.
+
+\section{Architektura systemu}
+
+System został zaprojektowany jako aplikacja wielowarstwowa. Frontend odpowiada za interakcję użytkownika, backend za logikę biznesową i bezpieczeństwo, baza danych za trwałe dane, a monitoring za obserwację stanu aplikacji.
+
+\begin{table}[!htbp]
+\centering
+\caption{Główne komponenty architektury}
+\label{tab:components}
+\begin{tabular}{|p{0.22\textwidth}|p{0.27\textwidth}|p{0.39\textwidth}|}
+\hline
+Komponent & Technologia & Rola w systemie \\
+\hline
+Frontend & React, TypeScript, Vite & Interfejs użytkownika, routing, formularze, przełączanie języka PL/EN. \\
+\hline
+Backend & Java, Spring Boot & REST API, walidacja, autoryzacja, przejścia statusów, obsługa plików i raportów. \\
+\hline
+Baza danych & PostgreSQL, Flyway & Dane użytkowników, zgłoszeń, recenzji, decyzji, plików i powiadomień. \\
+\hline
+Monitoring & Actuator, Prometheus, Grafana & Health checki, metryki techniczne i domenowe. \\
+\hline
+Infrastruktura & Docker Compose & Uruchomienie całego środowiska jedną komendą. \\
+\hline
+\end{tabular}
+\end{table}
+
+Przepływ żądania jest następujący: użytkownik wykonuje akcję w przeglądarce, frontend wysyła żądanie REST do backendu, backend sprawdza uprawnienia i reguły biznesowe, następnie odczytuje lub zapisuje dane w PostgreSQL. Jeśli akcja dotyczy pliku, zawartość pliku trafia do wolumenu Docker, a metadane pliku do bazy danych. W przypadku zdarzeń workflow backend tworzy powiadomienia dla odpowiednich użytkowników.
+
+\subsection{Podział backendu}
+
+Kod backendu jest podzielony na moduły domenowe: \texttt{user}, \texttt{submission}, \texttt{review}, \texttt{notification}, \texttt{reporting}, \texttt{monitoring}, \texttt{config} i \texttt{common}. Taki podział ułatwia utrzymanie, ponieważ każda część systemu ma wyraźną odpowiedzialność.
+
+Moduł \texttt{submission} obsługuje artykuły, autorów, kategorie, statusy i pliki. Moduł \texttt{review} obsługuje przypisania recenzentów, recenzje i decyzje redakcyjne. Moduł \texttt{notification} tworzy komunikaty po zmianach workflow. Moduł \texttt{reporting} przygotowuje podsumowania i eksporty. Moduł \texttt{monitoring} wystawia metryki dla Prometheus.
+
+\subsection{Bezpieczeństwo i autoryzacja}
+
+Frontend ukrywa część funkcji zależnie od roli, ale nie jest jedyną warstwą bezpieczeństwa. Właściwe reguły są sprawdzane po stronie backendu. Przykładowo przypisanie recenzenta, zmiana roli użytkownika, złożenie decyzji redakcyjnej i przejście statusu artykułu wymagają odpowiednich uprawnień oraz poprawnego stanu domenowego.
+
+\section{Interfejs użytkownika}
+
+\twoscreenshotfigure
+{01-start-page-login.png}
+{Strona startowa z panelem logowania}
+{02-registration-form.png}
+{Formularz rejestracji nowego użytkownika}
+{Autoryzacja użytkownika: logowanie i rejestracja}
+{fig:auth-screens}
+
+Strona startowa pełni dwie funkcje. Po pierwsze wyjaśnia, czego dotyczy projekt i jakie moduły są dostępne. Po drugie zawiera panel autoryzacji. Dzięki temu demonstracja projektu może rozpocząć się od jednego miejsca, bez ręcznego przechodzenia do oddzielnej strony logowania.
+
+Rejestracja tworzy konto autora. Użytkownik podaje imię i nazwisko, e-mail oraz hasło. System nie pozwala wybrać roli uprzywilejowanej. Jest to celowy kompromis: rejestracja pozostaje prosta, ale kontrola uprawnień należy do administratora.
+
+\screenshotfigure{03-home-admin-all-tabs.png}{Strona główna po zalogowaniu jako administrator z pełną nawigacją}{fig:home-admin}
+
+Na ekranie po zalogowaniu widać pełny zestaw zakładek. Zrzut wykonano z konta administratora, aby pokazać całą strukturę aplikacji: zgłoszenia, powiadomienia, recenzje, publikacje, raporty i panel administracyjny. Dla ról o mniejszych uprawnieniach część zakładek jest ukryta.
+
+\FloatBarrier
+
+\section{Moduł zgłoszeń}
+
+\twoscreenshotfigure
+{04-submission-create-form.png}
+{Formularz tworzenia zgłoszenia artykułu}
+{05-submission-file-upload.png}
+{Upload plików artykułu}
+{Tworzenie zgłoszenia oraz dołączanie plików}
+{fig:submission-create-upload}
+
+Formularz zgłoszenia zbiera najważniejsze metadane artykułu: tytuł, streszczenie, słowa kluczowe, e-mail autora korespondencyjnego, kategorię oraz listę autorów. Autor może przygotować szkic albo wysłać zgłoszenie bezpośrednio do recenzji. W praktyce rozdzielenie szkicu i zgłoszenia jest ważne, ponieważ pozwala poprawić dane przed rozpoczęciem procesu redakcyjnego.
+
+System obsługuje pliki PDF, DOCX oraz źródła LaTeX. Pliki są przechowywane w wolumenie, natomiast ich metadane znajdują się w bazie danych. Takie rozwiązanie jest prostsze niż zewnętrzny object storage, ale wystarczające dla lokalnego środowiska projektu i prezentacji uczelnianej.
+
+\twoscreenshotfigure
+{06-submission-filters.png}
+{Filtrowanie zgłoszeń po statusie, kategorii i zapytaniu tekstowym}
+{07-submission-list-and-details.png}
+{Lista zgłoszeń i szczegóły wybranego artykułu}
+{Przeglądanie zgłoszeń: filtry, lista i szczegóły}
+{fig:submission-filters-details}
+
+Lista zgłoszeń może być filtrowana według statusu, kategorii i tekstu. Filtrowanie jest obsługiwane przez backend, dzięki czemu widok nie musi pobierać całej logiki do klienta. Podczas pracy nad projektem poprawiono również przypadek wyszukiwania bez tekstu dla PostgreSQL, aby endpoint działał poprawnie z pustym zapytaniem.
+
+Po wybraniu zgłoszenia użytkownik widzi szczegóły artykułu, słowa kluczowe, autorów, status i pliki. Ten ekran jest ważny dla demonstracji, ponieważ pokazuje, że formularz nie jest tylko wizualnym elementem. Dane zapisane przez backend są później odczytywane i prezentowane w szczegółach.
+
+\screenshotfigure{08-draft-edit-mode.png}{Edycja szkicu przed wysłaniem do recenzji}{fig:draft-edit}
+
+Szkice można edytować przed wysłaniem do recenzji. Po rozpoczęciu procesu recenzyjnego edycja jest ograniczana, ponieważ artykuł staje się przedmiotem formalnego workflow. Chroni to przed sytuacją, w której recenzent ocenia inną wersję niż ta, którą widzi redakcja.
+
+\FloatBarrier
+
+\section{Workflow recenzji}
+
+Najważniejszy scenariusz systemu przechodzi przez statusy:
+
+\begin{center}
+\texttt{DRAFT} $\rightarrow$ \texttt{SUBMITTED} $\rightarrow$ \texttt{IN\_REVIEW} $\rightarrow$ \texttt{REVIEW\_COMPLETED} $\rightarrow$ \texttt{ACCEPTED}/\texttt{REJECTED} $\rightarrow$ \texttt{PUBLISHED}
+\end{center}
+
+\twoscreenshotfigure
+{09-review-assignment-form.png}
+{Przypisanie recenzenta do zgłoszenia}
+{10-review-submit-form.png}
+{Formularz składania recenzji}
+{Przypisanie recenzenta i złożenie recenzji}
+{fig:review-assignment-form}
+
+Redaktor lub administrator wybiera zgłoszenie i recenzenta. Przypisanie zmienia status artykułu na \texttt{IN\_REVIEW} i tworzy powiadomienia dla autora oraz recenzenta. Backend sprawdza, czy wybrany użytkownik faktycznie ma rolę \texttt{REVIEWER} oraz czy recenzent nie jest już przypisany do tego samego artykułu.
+
+Recenzent uzupełnia ocenę liczbową, rekomendację, komentarz skrócony i komentarz szczegółowy. Rozdzielenie komentarzy jest praktyczne: krótki komentarz pozwala szybko zrozumieć wynik, a komentarz szczegółowy daje miejsce na uzasadnienie decyzji i wskazanie poprawek dla autora.
+
+\screenshotfigure{11-review-history.png}{Lista przypisań i historia recenzji}{fig:review-history}
+
+Historia recenzji pozwala sprawdzić, kto ocenił artykuł, jaką rekomendację wystawił i jakie komentarze pozostawił. Jest to ważne z punktu widzenia audytu procesu, ponieważ decyzja redakcyjna nie powinna być oderwana od recenzji.
+
+\FloatBarrier
+
+\section{Publikacja i decyzje redakcyjne}
+
+\twoscreenshotfigure
+{12-editorial-decision-form.png}
+{Formularz decyzji redakcyjnej}
+{13-publication-queue-and-decisions.png}
+{Kolejka publikacji oraz historia decyzji}
+{Decyzje redakcyjne i publikacja artykułu}
+{fig:editorial-publication}
+
+Po zakończeniu recenzji redaktor może podjąć decyzję \texttt{ACCEPT} albo \texttt{REJECT}. Publikacja jest możliwa dopiero po wcześniejszej akceptacji. Taki model zapobiega przypadkowemu opublikowaniu artykułu, który nie przeszedł pełnej ścieżki decyzyjnej.
+
+Kolejka publikacyjna pokazuje artykuły w statusach redakcyjnych, a historia decyzji przechowuje notatki redaktora. Dzięki temu system zachowuje informację, dlaczego artykuł został zaakceptowany, odrzucony albo opublikowany.
+
+\FloatBarrier
+
+\section{Powiadomienia, raporty i administracja}
+
+\twoscreenshotfigure
+{14-notifications-author-events.png}
+{Powiadomienia workflow widoczne dla autora}
+{15-reports-and-exports.png}
+{Raport operacyjny i eksporty CSV/PDF}
+{Powiadomienia użytkownika oraz raporty operacyjne}
+{fig:notifications-reports}
+
+Powiadomienia informują użytkowników o zmianach w procesie. Autor otrzymuje wiadomości o przypisaniu recenzenta, decyzji redakcyjnej i publikacji. Recenzent otrzymuje informację o nowym zadaniu recenzenckim. System obsługuje stan przeczytane/nieprzeczytane oraz możliwość oznaczenia wszystkich wiadomości jako przeczytane.
+
+Moduł raportów prezentuje liczniki: liczbę zgłoszeń, szkiców, artykułów w recenzji, zaakceptowanych, odrzuconych, opublikowanych, liczbę przypisań recenzentów i plików. Dane można eksportować do CSV i PDF, co jest przydatne w prostym rozliczeniu pracy redakcji.
+
+\screenshotfigure{16-admin-role-management.png}{Panel administracyjny do ręcznego zarządzania rolami}{fig:admin}
+
+Panel administratora jest jednym z najważniejszych elementów bezpieczeństwa projektu. Administrator widzi listę użytkowników, ich aktualne role i status konta. Może ręcznie zmienić rolę użytkownika na \texttt{AUTHOR}, \texttt{REVIEWER}, \texttt{EDITOR} albo \texttt{ADMIN}. Dzięki temu role są kontrolowane centralnie, a nie deklarowane przez użytkownika.
+
+\FloatBarrier
+
+\section{Baza danych i migracje}
+
+Baza danych PostgreSQL przechowuje dane trwałe systemu. Migracje schematu są zarządzane przez Flyway, co pozwala odtworzyć strukturę bazy na nowym środowisku bez ręcznej konfiguracji.
+
+\begin{table}[!htbp]
+\centering
+\caption{Najważniejsze migracje Flyway}
+\label{tab:migrations}
+\begin{tabular}{|p{0.30\textwidth}|p{0.58\textwidth}|}
+\hline
+Migracja & Znaczenie \\
+\hline
+\texttt{V1\_\_initial\_schema.sql} & Główne tabele domenowe: użytkownicy, zgłoszenia, autorzy, pliki, recenzje i decyzje. \\
+\hline
+\texttt{V2\_\_seed\_initial\_data.sql} & Dane startowe: role, kategorie i konta demonstracyjne. \\
+\hline
+\texttt{V3\_\_review\_assignment\_uniqueness.sql} & Unikalność przypisań recenzenta do artykułu. \\
+\hline
+\texttt{V4\_\_normalize\_demo\_passwords.sql} & Ujednolicenie haseł kont demonstracyjnych. \\
+\hline
+\texttt{V5\_\_notifications.sql} & Obsługa powiadomień workflow. \\
+\hline
+\end{tabular}
+\end{table}
+
+Najważniejsze encje systemu to użytkownik, zgłoszenie artykułu, autor artykułu, kategoria, plik, przypisanie recenzenta, recenzja, decyzja redakcyjna i powiadomienie. Dane te są powiązane relacjami, ponieważ status artykułu zależy od recenzji i decyzji, a powiadomienia odnoszą się do konkretnych zgłoszeń.
+
+\section{Docker i uruchomienie}
+
+Środowisko jest uruchamiane przez \texttt{docker-compose.yml}. Kompozycja zawiera pięć usług: \texttt{postgres}, \texttt{backend}, \texttt{frontend}, \texttt{prometheus} i \texttt{grafana}. Dodatkowo zdefiniowano wolumeny dla danych PostgreSQL, przesłanych plików, danych Prometheus i danych Grafana.
+
+\begin{verbatim}
+docker compose up -d --build
+\end{verbatim}
+
+Po uruchomieniu dostępne są adresy:
+
+\begin{itemize}
+    \item frontend: \texttt{http://localhost:4173},
+    \item backend: \texttt{http://localhost:8080},
+    \item health check: \texttt{http://localhost:8080/actuator/health},
+    \item Prometheus: \texttt{http://localhost:9090},
+    \item Grafana: \texttt{http://localhost:3000}.
+\end{itemize}
+
+\section{Monitoring}
+
+Monitoring wykorzystuje Spring Boot Actuator, Micrometer, Prometheus i Grafana. Backend udostępnia metryki pod adresem \texttt{/actuator/prometheus}. Prometheus pobiera je cyklicznie, a Grafana prezentuje gotowy dashboard provisionowany z plików repozytorium.
+
+\twoscreenshotfigure
+{17-prometheus-targets.png}
+{Prometheus targets dla backendu i Prometheus}
+{18-grafana-dashboard.png}
+{Dashboard Grafana z metrykami aplikacji}
+{Monitoring aplikacji w Prometheus i Grafana}
+{fig:monitoring-screens}
+
+Widok Prometheus pozwala sprawdzić, czy backend jest poprawnie scrapowany. Jest to podstawowa informacja operacyjna: jeśli target jest niedostępny, metryki w Grafana nie będą aktualne.
+
+Dashboard Grafana pokazuje metryki domenowe: liczbę zgłoszeń, przypisań recenzentów, plików oraz podział statusów. W projekcie monitoring nie ogranicza się wyłącznie do informacji, że aplikacja działa. Pokazuje również dane związane z realnym obciążeniem workflow.
+
+\FloatBarrier
+
+\section{Testy i weryfikacja}
+
+Projekt posiada testy integracyjne backendu oraz weryfikację frontendu przez lint, build i generowanie zrzutów ekranu. Testy backendu sprawdzają nie tylko start aplikacji, ale także kluczowe reguły biznesowe: edycję szkiców, wyszukiwanie, zarządzanie rolami, workflow recenzji, powiadomienia oraz eksporty raportów.
+
+\begin{table}[!htbp]
+\centering
+\caption{Zakres testów i weryfikacji}
+\label{tab:tests}
+\begin{tabular}{|p{0.32\textwidth}|p{0.56\textwidth}|}
+\hline
+Element & Co jest sprawdzane \\
+\hline
+\texttt{ArticleSubmissionSystemApplicationTests} & Uruchomienie kontekstu Spring Boot i konfiguracji aplikacji. \\
+\hline
+\texttt{SubmissionServiceIntegrationTest} & Tworzenie, edycja szkicu, wyszukiwanie i filtrowanie zgłoszeń. \\
+\hline
+\texttt{WorkflowAndAdministrationIntegrationTest} & Role, przypisania recenzentów, recenzje, decyzje, powiadomienia i raporty. \\
+\hline
+\texttt{npm run lint} & Poprawność statyczna kodu frontendu. \\
+\hline
+\texttt{npm run build} & Produkcyjna kompilacja React i TypeScript. \\
+\hline
+\texttt{npm run screenshots} & Aktualność dokumentacji wizualnej względem działającego systemu. \\
+\hline
+\end{tabular}
+\end{table}
+
+Podczas końcowej weryfikacji uruchomiono:
+
+\begin{verbatim}
+cd backend
+.\mvnw.cmd test
+
+cd ..\frontend
+npm run lint
+npm run build
+npm run screenshots
+\end{verbatim}
+
+Wynik testów backendu: 3 testy, 0 błędów i 0 niepowodzeń. Build frontendu oraz lint zakończyły się poprawnie. Dokumentacja obrazkowa została wygenerowana z działającego środowiska Docker, co zwiększa wiarygodność zrzutów ekranu.
+
+\section{Dokumentacja i internacjonalizacja}
+
+Projekt posiada dokumentację w dwóch językach. Dokumentacja techniczna znajduje się w plikach \texttt{TECHNICAL\_DOCUMENTATION\_EN.md} oraz \texttt{DOKUMENTACJA\_TECHNICZNA\_PL.md}. Dodatkowo przygotowano galerię zrzutów ekranu i niniejsze sprawozdanie w szablonie LaTeX wymaganym przez uczelnię.
+
+Interfejs użytkownika obsługuje język polski i angielski przez i18next. Jest to korzystne z dwóch powodów. Po pierwsze projekt może być oceniany w kontekście polskiej uczelni. Po drugie repozytorium może być pokazane publicznie jako projekt portfolio z angielskim opisem.
+
+\section{Podsumowanie i wnioski}
+
+W ramach projektu przygotowano kompletną aplikację webową spełniającą wymagania zadania: frontend, backend, bazę danych, Docker, testy, monitoring i dokumentację. Najważniejszym rezultatem jest działający workflow zgłoszenia artykułu naukowego od szkicu do publikacji.
+
+Projekt pokazuje kilka istotnych decyzji inżynierskich. Role są nadawane ręcznie przez administratora, a nie wybierane przez użytkownika. Statusy artykułów są kontrolowane przez backend. Pliki są oddzielone od metadanych. Monitoring pokazuje zarówno stan techniczny, jak i dane domenowe. Zrzuty ekranu są generowane z działającej aplikacji, dzięki czemu dokumentacja pozostaje spójna z produktem.
+
+Możliwe kierunki dalszego rozwoju obejmują integrację z uczelnianym SSO, wysyłkę e-mail, wieloetapowe rundy recenzji, tryb blind review, object storage dla plików, bardziej rozbudowaną analitykę redakcyjną oraz dokładniejsze testy end-to-end.
+
+\spistabel
+\spisrysunkow
+\printbibliography
+
+\end{document}
