@@ -87,7 +87,39 @@ Aplikacja React zawiera główne trasy:
 
 Interfejs jest dwujęzyczny. Polski służy głównie dokumentacji uczelnianej, a angielski ułatwia publiczne wykorzystanie repozytorium.
 
-## 8. Baza danych
+## 8. Architektura frontendu, API i stan
+
+Frontend jest zorganizowany wokół niewielkiej powłoki aplikacji oraz stron funkcjonalnych:
+
+- `App.tsx`: definicje tras dla strony głównej, zgłoszeń, powiadomień, recenzji, publikacji, raportów i administracji.
+- `components/AppLayout.tsx`: wspólna nawigacja, przełącznik języka i widoczność menu zależna od roli.
+- `pages/*`: stan ekranów, formularzy, filtrów, zaznaczonych rekordów i odświeżania danych.
+- `api/client.ts`: typowana warstwa komunikacji z API oparta na axios.
+- `api/types.ts`: kontrakty TypeScript odpowiadające requestom i response DTO backendu.
+- `auth/AuthProvider.tsx`: stan uwierzytelnienia, logowanie, rejestracja, wylogowanie i ładowanie bieżącego użytkownika.
+
+Frontend nie używa zewnętrznej biblioteki globalnego stanu. Stan jest celowo prosty: uwierzytelnienie znajduje się w React Context, a dane konkretnych ekranów są pobierane i obsługiwane w komponentach stron przez `useState` i `useEffect`. Listy zgłoszeń, wybrane rekordy, formularze recenzji, stan powiadomień, eksporty raportów i flagi ładowania należą do strony, która je renderuje. Po mutacjach strony ponownie pobierają zmienione dane z API, aby interfejs pozostawał blisko stanu backendu.
+
+Obsługa JWT jest scentralizowana w `AuthProvider` oraz `api/client.ts`. Logowanie i rejestracja zwracają token oraz profil użytkownika. Przeglądarka zapisuje wyłącznie `{ token }` w local storage pod kluczem `article-submission-auth`; e-mail i hasło nie są utrwalane. Uwierzytelnione wywołania API tworzą klienta axios z nagłówkiem `Authorization: Bearer <token>`. Po starcie aplikacji zapisany token jest sprawdzany przez `/api/auth/me`; jeśli żądanie się nie powiedzie, token jest usuwany, a użytkownik zostaje lokalnie wylogowany.
+
+Bazowy adres API jest odczytywany z `VITE_API_BASE_URL`, a domyślnie wskazuje `http://localhost:8080`. Logowanie i rejestracja są wykonywane jako nieuwierzytelnione żądania axios, natomiast endpointy chronione są wywoływane przez klienta z tokenem JWT. Warstwa API zwraca typowane dane i grupuje endpointy domenowo, dzięki czemu strony nie zależą bezpośrednio od szczegółów HTTP.
+
+Błędy sieciowe i walidacyjne są obsługiwane na dwóch poziomach. Uwierzytelnianie wyciąga komunikaty błędów z odpowiedzi axios i pokazuje feedback logowania albo rejestracji. Strony funkcjonalne przechwytują błędy przy operacjach takich jak tworzenie zgłoszenia, przypisanie recenzenta, wysłanie recenzji, zmiana roli i eksporty, a następnie pokazują komunikat zastępczy. Globalny interceptor błędów axios nie jest używany celowo, ponieważ każdy workflow wymaga innego komunikatu dla użytkownika. Backend pozostaje źródłem prawdy dla autoryzacji i reguł biznesowych, więc walidacje frontendu służą głównie wygodzie użytkownika.
+
+Nawigacja zależna od roli w `AppLayout.tsx` ukrywa niedostępne zakładki, ale nie jest traktowana jako mechanizm bezpieczeństwa. Każda operacja uprzywilejowana jest dodatkowo chroniona przez Spring Security oraz reguły biznesowe usług.
+
+Główne grupy API używane przez frontend:
+
+- `/api/auth`: logowanie, rejestracja i profil bieżącego użytkownika.
+- `/api/users`: wyszukiwanie recenzentów/redaktorów i administracja rolami.
+- `/api/categories`: kategorie naukowe.
+- `/api/submissions`: lista, szczegóły, edycja szkicu i tworzenie zgłoszeń.
+- `/api/submissions/{id}/files`: upload i download plików.
+- `/api/review-assignments`, `/api/reviews`, `/api/editorial-decisions`: workflow recenzji.
+- `/api/notifications`: powiadomienia i stan przeczytane/nieprzeczytane.
+- `/api/reports`: liczniki operacyjne oraz eksport CSV/PDF.
+
+## 9. Baza danych
 
 Schemat bazy jest zarządzany migracjami Flyway:
 
@@ -99,7 +131,7 @@ Schemat bazy jest zarządzany migracjami Flyway:
 
 Główne encje to użytkownicy, zgłoszenia artykułów, autorzy, kategorie, pliki, przypisania recenzentów, recenzje, decyzje redakcyjne i powiadomienia.
 
-## 9. Docker
+## 10. Docker
 
 `docker-compose.yml` uruchamia:
 
@@ -119,7 +151,7 @@ Porty hosta są przypięte do `127.0.0.1` i można je zmienić w `.env` przez zm
 
 Przed pierwszym uruchomieniem należy utworzyć `.env` na podstawie `.env.example`. W Windows PowerShell służy do tego `Copy-Item .env.example .env`, a w macOS i Linux `cp .env.example .env`.
 
-## 10. Monitoring
+## 11. Monitoring
 
 Monitoring działa na dwóch poziomach:
 
@@ -128,14 +160,17 @@ Monitoring działa na dwóch poziomach:
 
 Grafana jest provisionowana z plików w repozytorium, więc dashboard odtwarza się automatycznie po uruchomieniu Docker Compose.
 
-## 11. Testy i weryfikacja
+## 12. Testy i weryfikacja
 
 Testy integracyjne backendu sprawdzają kluczowe reguły biznesowe:
 
 - poprawny start kontekstu Spring,
 - edycję szkicu i wyszukiwanie zgłoszeń,
+- możliwość zgłoszenia artykułów o tym samym tytule przez dwóch różnych autorów przy zachowaniu oddzielnego właściciela,
+- blokadę edycji szkicu przez innego autora,
 - administrację rolami, workflow recenzji, powiadomienia oraz eksporty raportów.
-- logowanie JWT, endpoint bieżącego użytkownika, ochronę Bearer tokenem oraz blokadę dostępu autora do panelu administracyjnego.
+- odrzucenie ponownego przypisania tego samego recenzenta do tego samego zgłoszenia.
+- logowanie JWT, endpoint bieżącego użytkownika, ochronę Bearer tokenem, odrzucenie niepoprawnego tokena, dostęp administratora oraz autoryzację zmiany ról.
 
 Frontend jest weryfikowany przez:
 
@@ -149,7 +184,7 @@ Komenda screenshot generuje obrazy dokumentacyjne z działającej aplikacji. Dzi
 
 GitHub Actions uruchamia testy Maven backendu oraz lint/build frontendu przy pushach i pull requestach do `main`.
 
-## 12. Zrzuty ekranu
+## 13. Zrzuty ekranu
 
 Aktualna dokumentacja wykorzystuje 18 świeżych zrzutów:
 

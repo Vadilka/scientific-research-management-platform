@@ -87,7 +87,39 @@ The React application contains these main routes:
 
 The UI is bilingual. Polish is used for the university-facing screenshots and English is available for public repository usage.
 
-## 8. Database
+## 8. Frontend Architecture, API and State
+
+The frontend is organized around a small application shell and feature pages:
+
+- `App.tsx`: route definitions for home, submissions, notifications, reviews, publication queue, reports and administration.
+- `components/AppLayout.tsx`: shared navigation, language switcher and role-aware menu visibility.
+- `pages/*`: page-level state for forms, filters, selected rows and refresh actions.
+- `api/client.ts`: typed API access layer based on axios.
+- `api/types.ts`: shared TypeScript contracts that mirror backend request and response DTOs.
+- `auth/AuthProvider.tsx`: authentication state, login, registration, logout and current-user loading.
+
+The frontend does not use a global state library. State is intentionally kept simple: authentication is stored in React Context, while page-specific data is loaded and managed inside the relevant page component with `useState` and `useEffect`. Submission lists, selected records, review forms, notification state, report downloads and loading flags are owned by the page that renders them. After mutations, pages reload the affected data from the API so the UI stays close to backend state.
+
+JWT handling is centralized in `AuthProvider` and `api/client.ts`. Login and registration return a token and current user profile. The browser stores only `{ token }` in local storage under `article-submission-auth`; email and password are not persisted. Authenticated API calls create an axios client with the `Authorization: Bearer <token>` header. On application startup, the stored token is validated by calling `/api/auth/me`; if the request fails, the token is removed and the user is logged out locally.
+
+The API base URL is read from `VITE_API_BASE_URL` and falls back to `http://localhost:8080`. Login and registration are unauthenticated axios calls, while protected endpoints are called through the token-aware client. The API layer returns typed response data and keeps endpoint usage grouped by domain, which makes pages less dependent on raw HTTP details.
+
+Network and validation errors are handled at two levels. Authentication extracts backend error messages from axios responses and displays login or registration feedback. Feature pages catch API errors around mutations such as submission creation, reviewer assignment, review submission, role updates and exports, then show a user-facing fallback message. A global axios error interceptor is intentionally not used because each workflow needs a different message. The backend remains the source of truth for authorization and business-rule validation, so frontend checks are only used to improve the user experience.
+
+Role-aware navigation in `AppLayout.tsx` hides unavailable tabs, but it is not treated as a security mechanism. Every privileged action is also protected by Spring Security and service-level business rules.
+
+The main API groups used by the frontend are:
+
+- `/api/auth`: login, registration and current-user profile.
+- `/api/users`: reviewer/editor lookup and administrator role management.
+- `/api/categories`: scientific categories.
+- `/api/submissions`: submission list, details, draft editing and creation.
+- `/api/submissions/{id}/files`: file upload and download.
+- `/api/review-assignments`, `/api/reviews`, `/api/editorial-decisions`: peer-review workflow.
+- `/api/notifications`: workflow notifications and read/unread state.
+- `/api/reports`: operational counters and CSV/PDF exports.
+
+## 9. Database
 
 The database schema is managed by Flyway migrations:
 
@@ -99,7 +131,7 @@ The database schema is managed by Flyway migrations:
 
 Main persisted entities include users, article submissions, authors, categories, files, review assignments, reviews, editorial decisions and notifications.
 
-## 9. Docker Deployment
+## 10. Docker Deployment
 
 `docker-compose.yml` starts:
 
@@ -119,7 +151,7 @@ Host ports are bound to `127.0.0.1` and can be changed through `.env` variables 
 
 Before the first run, create `.env` from `.env.example`. On Windows PowerShell use `Copy-Item .env.example .env`; on macOS and Linux use `cp .env.example .env`.
 
-## 10. Monitoring
+## 11. Monitoring
 
 Monitoring has two levels:
 
@@ -128,14 +160,17 @@ Monitoring has two levels:
 
 Grafana is provisioned from repository files, so the dashboard is recreated automatically when the Docker stack starts.
 
-## 11. Testing and Verification
+## 12. Testing and Verification
 
 Backend integration tests verify the most important business rules:
 
 - Spring application context starts correctly.
 - Draft editing and submission search work.
+- Two different authors can submit articles with the same title while ownership remains separated.
+- A non-owner author cannot edit another user's draft.
 - Role administration, review workflow, notifications and report exports work together.
-- JWT login, current-user lookup, Bearer-token protection and author access restrictions are covered by security tests.
+- Duplicate reviewer assignment for the same submission is rejected.
+- JWT login, current-user lookup, Bearer-token protection, invalid token rejection, administrator access and role-change authorization are covered by security tests.
 
 Frontend verification includes:
 
@@ -149,7 +184,7 @@ The screenshot command generates documentation images from the running applicati
 
 GitHub Actions runs the backend Maven tests and frontend lint/build jobs on pushes and pull requests to `main`.
 
-## 12. Screenshots
+## 13. Screenshots
 
 The current documentation uses 18 fresh screenshots:
 

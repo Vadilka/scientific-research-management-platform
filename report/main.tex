@@ -163,6 +163,16 @@ Moduł \texttt{submission} obsługuje artykuły, autorów, kategorie, statusy i 
 
 Frontend ukrywa część funkcji zależnie od roli, ale nie jest jedyną warstwą bezpieczeństwa. Właściwe reguły są sprawdzane po stronie backendu. Przykładowo przypisanie recenzenta, zmiana roli użytkownika, złożenie decyzji redakcyjnej i przejście statusu artykułu wymagają odpowiednich uprawnień oraz poprawnego stanu domenowego.
 
+\subsection{Architektura frontendu i komunikacja z API}
+
+Frontend jest podzielony na warstwę routingu, komponenty układu, strony funkcjonalne, kontekst uwierzytelnienia oraz warstwę komunikacji z API. Plik \texttt{App.tsx} definiuje trasy aplikacji, \texttt{AppLayout.tsx} odpowiada za wspólną nawigację i widoczność zakładek zależną od roli, a katalog \texttt{pages} zawiera ekrany obsługujące własny stan formularzy, filtrów, zaznaczonych rekordów, eksportów i odświeżania danych.
+
+Stan globalny ograniczono do uwierzytelnienia. \texttt{AuthProvider} przechowuje token JWT, profil bieżącego użytkownika, stan ładowania oraz komunikaty błędów logowania i rejestracji. Aplikacja nie używa zewnętrznej biblioteki globalnego stanu, ponieważ większość danych jest lokalna dla konkretnych ekranów. Po mutacjach, takich jak utworzenie zgłoszenia, przypisanie recenzenta albo zmiana roli, strona ponownie pobiera dane z API. Dzięki temu przepływ danych pozostaje prosty i czytelny.
+
+Warstwa \texttt{api/client.ts} grupuje wywołania REST i tworzy klienta axios z nagłówkiem \texttt{Authorization: Bearer <token>}. Bazowy adres API pochodzi ze zmiennej \texttt{VITE\_API\_BASE\_URL}, a domyślnie wskazuje \texttt{http://localhost:8080}. Po logowaniu lub rejestracji frontend zapisuje w local storage wyłącznie obiekt \texttt{\{ token \}} pod kluczem \texttt{article-submission-auth}; e-mail i hasło nie są utrwalane. Po starcie aplikacji token jest sprawdzany przez endpoint \texttt{/api/auth/me}. Jeśli żądanie się nie powiedzie, token jest usuwany i użytkownik zostaje lokalnie wylogowany.
+
+Błędy sieciowe i walidacyjne są obsługiwane w miejscu wykonania operacji. Panel logowania odczytuje komunikat \texttt{message} z odpowiedzi backendu, a strony funkcjonalne pokazują komunikaty zastępcze przy nieudanym tworzeniu zgłoszenia, przypisaniu recenzenta, recenzji, zmianie roli albo eksporcie raportów. Nie zastosowano globalnego interceptora błędów axios, ponieważ komunikat zależy od kontekstu konkretnego workflow. Frontend poprawia wygodę użytkownika, ale źródłem prawdy dla reguł biznesowych i autoryzacji pozostaje backend. Ukrywanie zakładek według roli w \texttt{AppLayout.tsx} jest tylko warstwą UX, a nie mechanizmem bezpieczeństwa.
+
 \section{Interfejs użytkownika}
 
 \twoscreenshotfigure
@@ -358,7 +368,7 @@ Dashboard Grafana pokazuje metryki domenowe: liczbę zgłoszeń, przypisań rece
 
 \section{Testy i weryfikacja}
 
-Projekt posiada testy integracyjne backendu oraz weryfikację frontendu przez lint, build i generowanie zrzutów ekranu. Testy backendu sprawdzają nie tylko start aplikacji, ale także kluczowe reguły biznesowe: edycję szkiców, wyszukiwanie, zarządzanie rolami, workflow recenzji, powiadomienia oraz eksporty raportów.
+Projekt posiada testy integracyjne backendu oraz weryfikację frontendu przez lint, build i generowanie zrzutów ekranu. Testy backendu sprawdzają nie tylko start aplikacji, ale także kluczowe reguły biznesowe: edycję szkiców, wyszukiwanie, właścicielstwo zgłoszeń, powtarzalne tytuły u różnych autorów, zarządzanie rolami, workflow recenzji, powiadomienia oraz eksporty raportów.
 
 \begin{table}[!htbp]
 \centering
@@ -370,11 +380,11 @@ Element & Co jest sprawdzane \\
 \hline
 \texttt{ArticleSubmissionSystemApplicationTests} & Uruchomienie kontekstu Spring Boot i konfiguracji aplikacji. \\
 \hline
-\texttt{SubmissionServiceIntegrationTest} & Tworzenie, edycja szkicu, wyszukiwanie i filtrowanie zgłoszeń. \\
+\texttt{SubmissionServiceIntegrationTest} & Tworzenie, edycja szkicu, wyszukiwanie, filtrowanie, separacja właścicieli i odrzucenie edycji szkicu przez innego autora. \\
 \hline
-\texttt{WorkflowAndAdministrationIntegrationTest} & Role, przypisania recenzentów, recenzje, decyzje, powiadomienia i raporty. \\
+\texttt{WorkflowAndAdministrationIntegrationTest} & Role, przypisania recenzentów, blokada duplikatu przypisania, recenzje, decyzje, powiadomienia i raporty. \\
 \hline
-\texttt{AuthSecurityIntegrationTest} & Logowanie JWT, profil bieżącego użytkownika, ochrona endpointów tokenem Bearer i blokada panelu administracyjnego dla roli autora. \\
+\texttt{AuthSecurityIntegrationTest} & Logowanie JWT, profil bieżącego użytkownika, ochrona endpointów tokenem Bearer, odrzucenie niepoprawnego JWT, dostęp do panelu administracyjnego i autoryzacja zmiany ról. \\
 \hline
 \texttt{npm run lint} & Poprawność statyczna kodu frontendu. \\
 \hline
@@ -413,7 +423,7 @@ npm run build
 npm run screenshots
 \end{verbatim}
 
-Wynik testów backendu: 6 testów, 0 błędów i 0 niepowodzeń. Zestaw obejmuje test uruchomienia kontekstu aplikacji, testy workflow zgłoszeń i administracji, a także testy bezpieczeństwa dla logowania JWT, endpointu bieżącego użytkownika, dostępu bez tokena Bearer oraz blokady panelu administracyjnego dla roli \texttt{AUTHOR}. Build frontendu oraz lint zakończyły się poprawnie. Dokumentacja obrazkowa została wygenerowana z działającego środowiska Docker, co zwiększa wiarygodność zrzutów ekranu.
+Wynik testów backendu: 15 testów, 0 błędów i 0 niepowodzeń. Zestaw obejmuje test uruchomienia kontekstu aplikacji, testy workflow zgłoszeń i administracji, testy granic biznesowych dla właścicieli szkiców, powtarzalnych tytułów i duplikatów przypisań recenzentów, a także testy bezpieczeństwa dla logowania JWT, endpointu bieżącego użytkownika, dostępu bez tokena Bearer, niepoprawnego tokena JWT, dostępu do panelu administratora oraz zmiany ról. Build frontendu oraz lint zakończyły się poprawnie. Dokumentacja obrazkowa została wygenerowana z działającego środowiska Docker, co zwiększa wiarygodność zrzutów ekranu.
 
 \section{Dokumentacja i internacjonalizacja}
 
