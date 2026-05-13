@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,6 +17,7 @@ import pl.san.articlesubmission.submission.ScientificCategory;
 import pl.san.articlesubmission.submission.dto.CreateSubmissionRequest;
 import pl.san.articlesubmission.submission.dto.SubmissionAuthorRequest;
 import pl.san.articlesubmission.submission.dto.SubmissionDetailResponse;
+import pl.san.articlesubmission.submission.dto.SubmissionSummaryResponse;
 import pl.san.articlesubmission.submission.dto.UpdateSubmissionRequest;
 import pl.san.articlesubmission.submission.repository.ScientificCategoryRepository;
 import pl.san.articlesubmission.user.RoleName;
@@ -84,6 +86,72 @@ class SubmissionServiceIntegrationTest {
                 List.of(authorRequest("Updated Author", author.getEmail())),
                 false
         ), authentication)).isInstanceOf(BusinessRuleViolationException.class);
+    }
+
+    @Test
+    void allowsSameTitleForDifferentAuthorsAndKeepsOwnershipSeparated() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        ScientificCategory category = createCategory("DUPE-" + suffix, "Duplicate Title " + suffix);
+        User firstAuthor = createAuthor("first.author." + suffix + "@san.local");
+        User secondAuthor = createAuthor("second.author." + suffix + "@san.local");
+        String sharedTitle = "Shared research topic " + suffix;
+
+        SubmissionDetailResponse firstSubmission = submissionService.create(new CreateSubmissionRequest(
+                sharedTitle,
+                "First author abstract",
+                List.of("shared", "topic"),
+                firstAuthor.getEmail(),
+                category.getId(),
+                List.of(authorRequest("First Author", firstAuthor.getEmail())),
+                true
+        ), authentication(firstAuthor.getEmail(), "ROLE_AUTHOR"));
+
+        SubmissionDetailResponse secondSubmission = submissionService.create(new CreateSubmissionRequest(
+                sharedTitle,
+                "Second author abstract",
+                List.of("shared", "topic"),
+                secondAuthor.getEmail(),
+                category.getId(),
+                List.of(authorRequest("Second Author", secondAuthor.getEmail())),
+                true
+        ), authentication(secondAuthor.getEmail(), "ROLE_AUTHOR"));
+
+        assertThat(firstSubmission.id()).isNotEqualTo(secondSubmission.id());
+        assertThat(firstSubmission.submittedByEmail()).isEqualTo(firstAuthor.getEmail());
+        assertThat(secondSubmission.submittedByEmail()).isEqualTo(secondAuthor.getEmail());
+        assertThat(submissionService.findAll(ArticleStatus.SUBMITTED, category.getId(), sharedTitle))
+                .extracting(SubmissionSummaryResponse::title)
+                .containsExactlyInAnyOrder(sharedTitle, sharedTitle);
+    }
+
+    @Test
+    void rejectsDraftEditByAnotherAuthor() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        User owner = createAuthor("draft.owner." + suffix + "@san.local");
+        User anotherAuthor = createAuthor("draft.intruder." + suffix + "@san.local");
+        ScientificCategory category = createCategory("OWN-" + suffix, "Ownership " + suffix);
+
+        SubmissionDetailResponse draft = submissionService.create(new CreateSubmissionRequest(
+                "Private draft " + suffix,
+                "Only the owner should be able to edit this draft.",
+                List.of("ownership"),
+                owner.getEmail(),
+                category.getId(),
+                List.of(authorRequest("Draft Owner", owner.getEmail())),
+                false
+        ), authentication(owner.getEmail(), "ROLE_AUTHOR"));
+
+        assertThatThrownBy(() -> submissionService.updateDraft(draft.id(), new UpdateSubmissionRequest(
+                "Hijacked draft",
+                "This update must be rejected.",
+                List.of("blocked"),
+                anotherAuthor.getEmail(),
+                category.getId(),
+                List.of(authorRequest("Intruder", anotherAuthor.getEmail())),
+                false
+        ), authentication(anotherAuthor.getEmail(), "ROLE_AUTHOR")))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessageContaining("Only the owner, editor, or administrator can edit this draft");
     }
 
     private User createAuthor(String email) {

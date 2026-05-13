@@ -179,6 +179,38 @@ class WorkflowAndAdministrationIntegrationTest {
         assertThat(reportingService.exportSubmissionsAsPdf()).startsWith("%PDF".getBytes(StandardCharsets.US_ASCII));
     }
 
+    @Test
+    void rejectsDuplicateReviewerAssignmentForTheSameSubmission() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        User author = createUser("Duplicate Author " + suffix, "duplicate.author." + suffix + "@san.local", RoleName.AUTHOR);
+        User reviewer = createUser("Duplicate Reviewer " + suffix, "duplicate.reviewer." + suffix + "@san.local", RoleName.REVIEWER);
+        ScientificCategory category = createCategory("DUP-" + suffix, "Duplicate Assignment " + suffix);
+
+        SubmissionDetailResponse submitted = submissionService.create(new CreateSubmissionRequest(
+                "Duplicate assignment article " + suffix,
+                "A submitted article should not receive the same reviewer twice.",
+                List.of("review", "assignment"),
+                author.getEmail(),
+                category.getId(),
+                List.of(authorRequest("Duplicate Author " + suffix, author.getEmail())),
+                true
+        ), authentication(author.getEmail(), "ROLE_AUTHOR"));
+
+        reviewAssignmentService.assignReviewer(new AssignReviewerRequest(
+                submitted.id(),
+                reviewer.getEmail(),
+                OffsetDateTime.now().plusDays(5)
+        ));
+
+        assertThatThrownBy(() -> reviewAssignmentService.assignReviewer(new AssignReviewerRequest(
+                submitted.id(),
+                reviewer.getEmail(),
+                OffsetDateTime.now().plusDays(6)
+        )))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessageContaining("Reviewer is already assigned to this submission");
+    }
+
     private User createUser(String fullName, String email, RoleName roleName) {
         User user = new User();
         user.setFullName(fullName);

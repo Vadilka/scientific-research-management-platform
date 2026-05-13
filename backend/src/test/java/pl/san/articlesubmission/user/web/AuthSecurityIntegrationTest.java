@@ -1,6 +1,7 @@
 package pl.san.articlesubmission.user.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,6 +65,86 @@ class AuthSecurityIntegrationTest {
         mockMvc.perform(get("/api/users/management")
                         .header(HttpHeaders.AUTHORIZATION, bearer(token)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void allowsAdminTokenToOpenUserManagement() throws Exception {
+        String email = createUser(RoleName.ADMIN);
+        String token = login(email);
+
+        mockMvc.perform(get("/api/users/management")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.email == '%s')]".formatted(email)).exists());
+    }
+
+    @Test
+    void rejectsAdminEndpointWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/users/management"))
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    void rejectsAdminRoleChangeForAuthorToken() throws Exception {
+        String authorEmail = createUser(RoleName.AUTHOR);
+        String targetEmail = createUser(RoleName.REVIEWER);
+        Long targetUserId = userRepository.findByEmailIgnoreCase(targetEmail).orElseThrow().getId();
+        String authorToken = login(authorEmail);
+
+        mockMvc.perform(patch("/api/users/{userId}/role", targetUserId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(authorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "roleName": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void allowsAdminToChangeAnotherUserRole() throws Exception {
+        String adminEmail = createUser(RoleName.ADMIN);
+        String targetEmail = createUser(RoleName.AUTHOR);
+        Long targetUserId = userRepository.findByEmailIgnoreCase(targetEmail).orElseThrow().getId();
+        String adminToken = login(adminEmail);
+
+        mockMvc.perform(patch("/api/users/{userId}/role", targetUserId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "roleName": "REVIEWER"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(targetEmail))
+                .andExpect(jsonPath("$.roleName").value(RoleName.REVIEWER.name()));
+    }
+
+    @Test
+    void rejectsAdminChangingOwnRole() throws Exception {
+        String adminEmail = createUser(RoleName.ADMIN);
+        Long adminUserId = userRepository.findByEmailIgnoreCase(adminEmail).orElseThrow().getId();
+        String adminToken = login(adminEmail);
+
+        mockMvc.perform(patch("/api/users/{userId}/role", adminUserId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "roleName": "AUTHOR"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Administrators cannot change their own role"));
+    }
+
+    @Test
+    void rejectsInvalidJwtForAuthenticatedEndpoint() throws Exception {
+        mockMvc.perform(get("/api/auth/me")
+                        .header(HttpHeaders.AUTHORIZATION, bearer("invalid.jwt.token")))
+                .andExpect(status().is4xxClientError());
     }
 
     private String createUser(RoleName roleName) {
